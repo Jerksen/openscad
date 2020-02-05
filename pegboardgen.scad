@@ -1,15 +1,5 @@
-// PEGSTR - Pegboard Wizard
-// Design by Marius Gheorghescu, November 2014
-// Update log:
-// November 9th 2014
-//		- first coomplete version. Angled holders are often odd/incorrect.
-// November 15th 2014
-//		- minor tweaks to increase rendering speed. added logo. 
-// November 28th 2014
-//		- bug fixes
-
-// September 29th 2019
-//      - added x and y offset customization       
+// Pegboard Generator
+// Based on an original Design by Marius Gheorghescu, November 2014
 
 // TODO - update to make an option for screw mounts instead of pegs
 
