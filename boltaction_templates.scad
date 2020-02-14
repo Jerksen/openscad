@@ -9,7 +9,7 @@ renders
 **********************/
 //ruler(6);
 //he_template (4, 3);
-//pin_base();
+pin_base();
 //base(10,10,0.01,2,1.5);
 //rcube([10,10,10], 2);
 
@@ -69,35 +69,41 @@ module ruler (li) {
 
 module pin_base () {
   /* a base to hold dice representing pin markers */
-  d=25;
-  w=10;
+  d=30;
+  wt = 2; // how thick are the walls around the dice?
+  th = t*2; // how tall is the dice trough walls?
+  de = th; // how deep is the dice trough?
+  w=12+.1+2*wt; // how wide is the dice trough?
+  
+  
   union() {
     // start with the base
     round_base(d);
     
     // then add the cube
-    translate([0,0,t])
-    base(10,10,0.01,2,1.5);
+    translate([0,0,t*.75])
+    base(w,w,e,th,wt,de);
   }
 }
 
-module round_base(d, thickness=undef, depth=undef) {
+module round_base(d, thickness, wall_thickness, depth) {
   base(d, d, d/2, thickness, depth);
 }
 
-module base(w, l, r, thickness=undef, depth=undef) {
+module base(w, l, r, thickness, wall_thickness, depth) {
   /* a base for units
     param w, l: the dimensions
     param r: the corner radius
   */
-  th = thickness == undef ? t/2 : thickness;
+  t = thickness == undef ? t : thickness;
+  wt = wall_thickness == undef ? t/2 : wall_thickness;
   d = depth == undef ? t*.25 : (depth > t ? t : depth);
   
   difference() {
     rcube([w, l, t], r, true);
     
     translate([0,0, (t-d)])
-    rcube([w-th, l-th, 20*t], r, true);
+    rcube([w-wt, l-wt, 20*t], r, true);
   }
   
 }
