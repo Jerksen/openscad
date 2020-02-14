@@ -5,6 +5,8 @@
 
 // TODO - offset seems to break it when holder_angle != 0
 
+// TODO - strength factor of > 0.66 leaves gaps when there is a closed bottom (in a 55Rx30 test at least)
+
 // preview[view:north, tilt:bottom diagonal]
 
 // size of the the orifice
