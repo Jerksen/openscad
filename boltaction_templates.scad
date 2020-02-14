@@ -1,17 +1,34 @@
 /**********************
+globals
+**********************/
+e = 0.01;
+t = 0.4*4;
+
+/**********************
 renders
 **********************/
-ruler(6);
-
+//ruler(6);
+//he_template (4, 3);
 
 /**********************
 modules
 **********************/
-module ruler(li) {
+module he_template (ri1, ri2) {
+  /* ri1 must be > ri2!!! */
+  r1 = ri1*25.4;
+  r2 = ri2*25.4;
+
+  difference () {
+    cylinder(t, r=r1);
+    
+    translate([0,0,-e/2])
+    cylinder(t+e, r=r2);
+  }
+}
+
+module ruler (li) {
   l = li*25.4;
   w = 10;
-  t = 0.4*4;
-  e = 0.01;
   tickw = 1;
   d_ratio = .25;
   
@@ -36,7 +53,7 @@ module ruler(li) {
     for (i=[1:li-1]) {
       translate([-w/2, i*25.4, t*(1-d_ratio)+e])
       rotate([0,0,-90])
-      cube([tickw, w*1, t*t_ratio]);
+      cube([tickw, w*1, t*d_ratio]);
     }
   }
 }
