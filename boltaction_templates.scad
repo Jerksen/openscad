@@ -1,15 +1,27 @@
+/*
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the Affero GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the Affero GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
+*/
+
+
 /**********************
 globals
 **********************/
 e = 0.01;
 t = 0.4*4;
+w = 10;
 
 /**********************
 renders
 **********************/
-//ruler(6);
-//he_template (4, 3);
-pin_base();
+foFireTemplate();
+//ruler(12);
+//he_template (2, 1);
+//translate([16/2,16/2,-2]) pin_base();
 //base(10,10,0.01,2,1.5);
 //rcube([10,10,10], 2);
 
@@ -32,12 +44,28 @@ module he_template (di1, di2) {
   }
 }
 
+module foFireTemplate() {
+  union () {
+    
+    difference () {
+      // main cube
+      cube([50,50, t]);
+      
+      // inner cube
+      translate([w/2, w/2, -e/2])
+      cube([50,50, t+e]);
+    }
+    
+    rotate([0,0,-45])
+    translate([-t/2, 0, 0])
+    cube([t, 3*w, t]);
+  }
+}
 module ruler (li) {
   /* a straight ruler for distance measuring
     param li: lenght in inches
   */
   l = li*25.4;
-  w = 10;
   tickw = 1;
   d_ratio = .25;
   
@@ -71,7 +99,7 @@ module pin_base () {
   /* a base to hold dice representing pin markers */
   d=30;
   wt = 2; // how thick are the walls around the dice?
-  th = t*2; // how tall is the dice trough walls?
+  th = t*3; // how tall is the dice trough walls?
   de = th; // how deep is the dice trough?
   w=12+.1+2*wt; // how wide is the dice trough?
   
@@ -96,8 +124,10 @@ module base(w, l, r, thickness, wall_thickness, depth) {
     param r: the corner radius
   */
   t = thickness == undef ? t : thickness;
-  wt = wall_thickness == undef ? t/2 : wall_thickness;
-  d = depth == undef ? t*.25 : (depth > t ? t : depth);
+  wt = wall_thickness == undef ? t : wall_thickness;
+  d = depth == undef ? t*.33 : (depth > t ? t : depth);
+  
+  echo(w=w, l=l, t=t, wt=wt, d=d);
   
   difference() {
     rcube([w, l, t], r, true);
@@ -118,7 +148,6 @@ module rcube(size, r=undef, center=false) {
   }
   else {
     rf = (r>min(size.x/2, size.y/2)) ? min(size.x/2, size.y/2) : r;
-    echo(size=size, rf=rf);
     trans = (center) ? [0,0,0] : [size.x/2, size.y/2, 0];
     
     translate(trans)
