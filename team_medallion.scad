@@ -1,7 +1,7 @@
 /********************************
 includes
 ********************************/
-include <nutsnbolts-master/cyl_head_bolt.scad>
+include <threads.scad>
 
 /********************************
 globals
@@ -17,13 +17,9 @@ render
 
 //hole_through(name="M5", l=50+5, cld=0.1, h=10, hcld=0.4);
 
-//base();
+base();
 
-translate([-d*.4,-(d*.2),h+t]) text("AM", size=d*.5, font="Courier");
-cap();
-
-translate([d*1.5,0,0]) base();
-//translate([0,0,10]) screw("M20x30", thread="modeled");
+//cap();
 
 /********************************
 modules
@@ -40,7 +36,7 @@ module base() {
     union () {
       // threading
       intersection () {
-        threading();
+        metric_thread(20,1,h);
         cylinder(h=10, d=d+e);
       }
       // small circular base
@@ -68,7 +64,7 @@ module cap() {
     // threading
     
     translate([0,0,-e])
-    scale([sf,sf,1]) threading();
+    metric_thread(d,1,h,internal=true);
   }
   
 }

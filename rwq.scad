@@ -15,7 +15,13 @@ echo(sf=sf);
 // text
 //text("red willow quilts", size=10, font="Pinyon Script");
 
-top();
+// TODO: trim outide edges of each (look at the corners)
+
+
+color("purple") top();
+color("yellow") l();
+color("red") r();
+color("red") bot();
 //l_raw();
 
 module l() {
@@ -51,6 +57,10 @@ module top() {
     
   }
   
+}
+
+module bot() {
+  rotate([0,0,180]) top();
 }
 
 module top_raw() {
