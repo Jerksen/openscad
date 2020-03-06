@@ -19,7 +19,7 @@ render
 
 base();
 
-//cap();
+//cap("NB");
 
 /********************************
 modules
@@ -36,20 +36,20 @@ module base() {
     union () {
       // threading
       intersection () {
-        metric_thread(20,1,h);
-        cylinder(h=10, d=d+e);
+        metric_thread(20,1,h-t);
+        cylinder(h=2*h, d=d+e);
       }
       // small circular base
       cylinder(h=h/4, d=d+t);
     }
     
-    #translate([0,0,1]) cylinder(h=1/16*25.4, d=1/4*25.4, center=true);
+    translate([0,0,.4]) cylinder(h=1/16*25.4+e*3, d=1/4*25.4+e*2);
   }
   
 
 }
 
-module cap() {
+module cap(label) {
   /*
   cap for a magnetic team medalian
   */
@@ -57,14 +57,26 @@ module cap() {
   sf = (d+.2)/d;
   echo(sf=sf);
   
+  translate([0,0,h+t*2])
+  linear_extrude(t)
+  text(label, halign="center", valign="center", size=d*.5, font="Courier");
+  scale([1.02, 1.02, 1.02])
   difference() {
     //main cylinder
-    cylinder(h=h+t, d=d+2*t);
+    cylinder(h=h+t*2, d=d+2*t);
     
     // threading
     
     translate([0,0,-e])
     metric_thread(d,1,h,internal=true);
+  }
+  
+  //support
+  
+  difference() {
+    cylinder(h=h-e, d=d/2);
+    
+    cylinder(h=h-e, d=d/2-1);
   }
   
 }
