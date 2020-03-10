@@ -8,7 +8,7 @@ globals
 ********************************/
 d = 20;
 e = 0.1;
-h = 5;
+h = 3;
 t = 0.8;
 
 /********************************
@@ -17,10 +17,12 @@ render
 
 //hole_through(name="M5", l=50+5, cld=0.1, h=10, hcld=0.4);
 
-base();
+/*
+linear_extrude(height=5)
+import("/home/jeff/Documents/team-logos/amrita.dxf");
+*/
 
-//cap("NB");
-
+allinone("YR");
 /********************************
 modules
 ********************************/
@@ -49,7 +51,7 @@ module base() {
 
 }
 
-module cap(label) {
+module cap(lbl) {
   /*
   cap for a magnetic team medalian
   */
@@ -58,8 +60,9 @@ module cap(label) {
   echo(sf=sf);
   
   translate([0,0,h+t*2])
-  linear_extrude(t)
-  text(label, halign="center", valign="center", size=d*.5, font="Courier");
+  label(lbl);
+  
+  
   scale([1.02, 1.02, 1.02])
   difference() {
     //main cylinder
@@ -79,6 +82,27 @@ module cap(label) {
     cylinder(h=h-e, d=d/2-1);
   }
   
+}
+
+module allinone(lbl) {
+  translate([0,0,h])
+  label(lbl);
+  
+  difference () {
+    // main cylinder
+    cylinder(h=h, d=d);
+    
+    
+    translate([0,0,.4])
+    cylinder(h=1/16*25.4+e*3, d=1/4*25.4+e*2);
+  }
+  
+}
+
+module label(lbl) {
+  
+  linear_extrude(t)
+  text(lbl, halign="center", valign="center", size=d*.5, font="Courier");
 }
 
 module threading () {

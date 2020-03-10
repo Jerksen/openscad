@@ -20,8 +20,8 @@ holder_height = 12;
 wall_thickness = 1.85;
 
 // how many times to repeat the holder on each axis
-holder_x_count = 1;
-holder_y_count = 1;
+holder_x_count = 2;
+holder_y_count = 2;
 
 // how much space to put between the orifices
 holder_x_space = 0;
@@ -42,7 +42,7 @@ holder_offset = 5;
 strength_factor = .66;
 
 // for bins: what ratio of wall thickness to use for closing the bottom
-closed_bottom = 0;
+closed_bottom = 1;
 
 // what percentage to cut in the front (example to slip in a cable or make the tool snap from the side)
 holder_cutout_side = 0.3;
@@ -76,11 +76,10 @@ epsilon = 0.1;
 clip_height = 2*hole_size + 2;
 $fn = fn;
 
-module round_rect_ex(x1, y1, x2, y2, z, r1, r2)
-{
+module round_rect_ex(x1, y1, x2, y2, z, r1, r2) {
 	$fn=holder_sides;
 	brim = z/10;
-
+  echo(x1=x1, y1=y1, x2=x2, y2=y2, z=z, r1=r1, r2=r2);
 	//rotate([0,0,(holder_sides==6)?30:((holder_sides==4)?45:0)])
 	hull() {
         translate([-x1/2 + r1, y1/2 - r1, z/2-brim/2])
@@ -104,8 +103,7 @@ module round_rect_ex(x1, y1, x2, y2, z, r1, r2)
     }
 }
 
-module pin(clip)
-{
+module pin(clip) {
 /* param clip: boolean
         if true, make a top clip, if false, make a standard peg
 */
@@ -134,8 +132,7 @@ module pin(clip)
 	}
 }
 
-module pinboard_clips() 
-{
+module pinboard_clips() {
 /*  make all the pins based on the size of the holder.
     
 */
@@ -152,8 +149,7 @@ module pinboard_clips()
 	}
 }
 
-module pinboard(clips)
-{
+module pinboard(clips) {
 /*
     create the plate that the pins and clips attach to
     pins and clips and plate holding it all together
@@ -180,123 +176,150 @@ module pinboard(clips)
 	}
 }
 
-module holder(negative)
-{
-/*
-    create the actual holder, but no bottoms or anything
-    
-*/
-	for(x=[1:holder_x_count]){
-		for(y=[1:holder_y_count]) 
-/*		render(convexity=2)*/ {
-            // translate to the last 
-			translate([
-				-holder_total_y /*- (holder_y_size+wall_thickness)/2*/ + y*(holder_y_size+wall_thickness) + wall_thickness + (y-1)*holder_y_space,
-
-				-holder_total_x/2 + (holder_x_size+wall_thickness)/2 + (x-1)*(holder_x_size+wall_thickness) + wall_thickness/2 + (x-1)*holder_x_space,
-				 0])			
-	{
-		rotate([0, holder_angle, 0])
-		translate([
-			-wall_thickness*abs(sin(holder_angle))-0*abs((holder_y_size/2)*sin(holder_angle))-holder_offset-(holder_y_size + 2*wall_thickness)/2 - board_thickness/2,
-			0,
-			-(holder_height/2)*sin(holder_angle) - holder_height/2 + clip_height/2
-		])
-		difference() {
-			if (!negative)
-
-				round_rect_ex(
-					(holder_y_size + 2*wall_thickness), 
-					holder_x_size + 2*wall_thickness, 
-					(holder_y_size + 2*wall_thickness)*taper_ratio, 
-					(holder_x_size + 2*wall_thickness)*taper_ratio, 
-					holder_height, 
+module holder_element(id, size) {
+  /*
+    create one of the elements of the holder:
+    param id: type of element
+      outer: outer shell
+      inner: inner shell
+      hole: through hole
+      f_inner: inner shell with partial front
+      f_hole: through hole with partial front
+  */
+  if (id == "outer") {
+    echo("making outer shell");
+    round_rect_ex(
+					(size.y + 2*wall_thickness), 
+					(size.x + 2*wall_thickness), 
+					(size.y + 2*wall_thickness)*taper_ratio, 
+					(size.x + 2*wall_thickness)*taper_ratio, 
+					size.z, 
 					holder_roundness + epsilon, 
 					holder_roundness*taper_ratio + epsilon);
+  } else if (id == "inner") {
+    echo("making inner shell");
+    translate([0,0,closed_bottom*wall_thickness])
+    round_rect_ex(
+					size.y, 
+					size.x, 
+					size.y*taper_ratio, 
+					size.x*taper_ratio, 
+					size.z, 
+					holder_roundness + epsilon, 
+					holder_roundness*taper_ratio + epsilon);
+  } else if (id == "hole") {
+    echo("making hole shell");
+    round_rect_ex(
+					size.y*taper_ratio, 
+					size.x*taper_ratio, 
+					size.y*taper_ratio, 
+					size.x*taper_ratio, 
+					size.z*2, 
+					holder_roundness + epsilon, 
+					holder_roundness + epsilon);
+  } else if (id == "f_inner") {
+    hull() {
+      scale([1.0, holder_cutout_side, 1.0])
+        round_rect_ex(
+        size.y, 
+        size.x, 
+        size.y*taper_ratio, 
+        size.x*taper_ratio, 
+        size.z+2*epsilon,
+        holder_roundness + epsilon, 
+        holder_roundness*taper_ratio + epsilon);
 
-				translate([0,0,closed_bottom*wall_thickness])
+      translate([0-(holder_y_size + 2*wall_thickness), 0,0])
+      scale([1.0, holder_cutout_side, 1.0])
+        round_rect_ex(
+        size.y, 
+        size.x, 
+        size.y*taper_ratio, 
+        size.x*taper_ratio, 
+        size.z+2*epsilon,
+        holder_roundness + epsilon, 
+        holder_roundness*taper_ratio + epsilon);
+      } //hull
+  } else if (id == "f_hole") {
+    hull () {
+      round_rect_ex(
+        size.y*taper_ratio, 
+        size.x*taper_ratio, 
+        size.y*taper_ratio, 
+        size.x*taper_ratio, 
+        size.z,
+        holder_roundness*taper_ratio + epsilon, 
+        holder_roundness*taper_ratio + epsilon);
+      
+        translate([0-(size.y + 2*wall_thickness), 0,0])
+        scale([1.0, holder_cutout_side, 1.0])
+        round_rect_ex(
+          size.y*taper_ratio, 
+          size.x*taper_ratio, 
+          size.y*taper_ratio, 
+          size.x*taper_ratio, 
+          size.z,
+          holder_roundness*taper_ratio + epsilon, 
+          holder_roundness*taper_ratio + epsilon);
+    } // hull
+  } // switch
+}
 
-				if (negative>1) {
-					round_rect_ex(
-						holder_y_size*taper_ratio, 
-						holder_x_size*taper_ratio, 
-						holder_y_size*taper_ratio, 
-						holder_x_size*taper_ratio, 
-						3*max(holder_height, hole_spacing),
-						holder_roundness*taper_ratio + epsilon, 
-						holder_roundness*taper_ratio + epsilon);
-				} else {
-					round_rect_ex(
-						holder_y_size, 
-						holder_x_size, 
-						holder_y_size*taper_ratio, 
-						holder_x_size*taper_ratio, 
-						holder_height+2*epsilon,
-						holder_roundness + epsilon, 
-						holder_roundness*taper_ratio + epsilon);
-				}
+module holder(size, front=false) {
+  
+  /* create a holder
+  param size: [width, depth, height]
+  param front: if true, the front will be cutout based on holder_cutout_side value
+  */
+  
+  cb = (closed_bottom*wall_thickness > epsilon);
+  
+  rotate([0, holder_angle, 0])
+  
+  difference() {
+    //main outer shell is the base
+    holder_element("outer", size);
+    
+    // cutout the cavity
+    translate([0,0,closed_bottom*wall_thickness])
+    holder_element("inner", size);
+    
+    // cutout the bottom if we need to
+    if (cb)
+      translate([0,0,-size.z/2]) holder_element("hole", size);
+    
+    // if the front is not complete, cut some of that out too
+    if (holder_cutout_side > 0 && front) {
+      holder_element("f_inner", size);
+      if (cb)
+        holder_element("f_hole", size);
+    }
+  }
+}
 
-			if (!negative)
-				if (holder_cutout_side > 0) {
-
-				if (negative>1) {
-					hull() {
-						scale([1.0, holder_cutout_side, 1.0])
-		 					round_rect_ex(
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							3*max(holder_height, hole_spacing),
-							holder_roundness*taper_ratio + epsilon, 
-							holder_roundness*taper_ratio + epsilon);
-		
-						translate([0-(holder_y_size + 2*wall_thickness), 0,0])
-						scale([1.0, holder_cutout_side, 1.0])
-		 					round_rect_ex(
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							3*max(holder_height, hole_spacing),
-							holder_roundness*taper_ratio + epsilon, 
-							holder_roundness*taper_ratio + epsilon);
-					}
-				} else {
-					hull() {
-						scale([1.0, holder_cutout_side, 1.0])
-		 					round_rect_ex(
-							holder_y_size, 
-							holder_x_size, 
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							holder_height+2*epsilon,
-							holder_roundness + epsilon, 
-							holder_roundness*taper_ratio + epsilon);
-		
-						translate([0-(holder_y_size + 2*wall_thickness), 0,0])
-						scale([1.0, holder_cutout_side, 1.0])
-		 					round_rect_ex(
-							holder_y_size, 
-							holder_x_size, 
-							holder_y_size*taper_ratio, 
-							holder_x_size*taper_ratio, 
-							holder_height+2*epsilon,
-							holder_roundness + epsilon, 
-							holder_roundness*taper_ratio + epsilon);
-						}
-					}
-
-				}
-			}
+module holders(negative, size) {
+/*
+    create an array of holders
+    
+*/
+  
+	for(x=[1:holder_x_count]) {
+		for(y=[1:holder_y_count]) {
+      x_pos = -holder_total_y + y*(holder_y_size+wall_thickness) + wall_thickness + (y-1)*holder_y_space;
+      y_pos = -holder_total_x/2 + (holder_x_size+wall_thickness)/2 + (x-1)*(holder_x_size+wall_thickness) + wall_thickness/2 + (x-1)*holder_x_space;
+      
+      xp2 = -wall_thickness*abs(sin(holder_angle))-0*abs((holder_y_size/2)*sin(holder_angle))-holder_offset-(holder_y_size + 2*wall_thickness)/2 - board_thickness/2;
+      zp2 = -(holder_height/2)*sin(holder_angle) - holder_height/2 + clip_height/2;
+      
+      // translate to the last 
+			translate([x_pos, y_pos, 0]) {
+        rotate([0, holder_angle, 0]) translate([xp2,0,zp2]) cube(1);
 		} // positioning
 	} // for y
 	} // for X
 }
 
-
-module pegstr() 
-{
+module pegstr() {
 	difference() {
 		union() {
             
@@ -347,4 +370,8 @@ module pegstr()
 }
 
 
-rotate([180,0,0]) pegstr();
+//rotate([180,0,0]) pegstr();
+
+difference () {
+  holder_element("outer", [10,20,30]);
+  holder_element("hole", [10,20,30]);}
