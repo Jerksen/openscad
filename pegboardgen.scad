@@ -1,5 +1,7 @@
-// Pegboard Generator
+// Holder Generator
 // Based on an original Design by Marius Gheorghescu, November 2014
+// Heavily modified to make it more maintainable and able to support screw and magnet mounts
+
 
 // TODO - update to make an option for screw mounts instead of pegs
 
@@ -9,26 +11,36 @@
 
 // preview[view:north, tilt:bottom diagonal]
 
-// size of each orifice
-holder_width = 10;
-holder_depth = 20;
+epsilon = 0.1;
 
-// hight of the holder
-holder_height = 30;
+// size of each orifice
+// patboard cards
+holder = [70, 40, 40];
+
+// markers
+
+
+// magnet params
+magnet = [6+epsilon, 1+epsilon, 6+epsilon];
+mag_edge_space = 2;
+mag_space = 100;
 
 // how thick are the walls. Hint: 6*extrusion width produces the best results.
 wall_thickness = 1.85;
 
+// how thick are the outer walls between magnet cavities and the metal surface
+mag_wall_thickness = .4;
+
 // how many times to repeat the holder on each axis
-row_count = 2;
-col_count = 3;
+row_count = 3;
+col_count = 1;
 
 // how much space to put between the orifices
 row_space = 0;
 col_space = 0;
 
 // orifice corner radius (roundness). Needs to be less than min(x,y)/2.
-corner_radius = 10;
+corner_radius = 2.5;
 
 // Use values less than 1.0 to make the bottom of the holder narrow
 taper_ratio = 1;
@@ -57,24 +69,25 @@ holder_angle = 0;
 DEBUG = false;
 
 // what is the $fn parameter
-holder_sides = max(50, min(20, holder_width*2));
+holder_sides = max(50, min(20, holder.y*2));
 
 // dimensions the same outside US?
 hole_spacing = 25.4;
 hole_size = 6.0035;
 board_thickness = 5;
 
+total_width = wall_thickness + row_count*(max(wall_thickness,row_space)+holder.x);
+total_depth = wall_thickness + col_count*(max(wall_thickness,col_space)+holder.y);
+total_height = round(holder.z/hole_spacing)*hole_spacing;
+holder_roundness = min(corner_radius, holder.y/2, holder.x/2); 
 
-total_width = wall_thickness + row_count*(wall_thickness+holder_width) + (row_count-1)*row_space;
-total_depth = wall_thickness + col_count*(wall_thickness+holder_depth) + (col_count-1)*col_space;
-total_height = round(holder_height/hole_spacing)*hole_spacing;
-holder_roundness = min(corner_radius, holder_width/2, holder_depth/2); 
-
+if (DEBUG) {
+  echo(tot_w=total_width, tot_d=total_depth);
+  echo(roundness=holder_roundness);
+}
 
 // what is the $fn parameter for holders
 fn = 32;
-
-epsilon = 0.1;
 
 clip_height = 2*hole_size + 2;
 $fn = fn;
@@ -115,7 +128,8 @@ module pin(clip) {
 /* param clip: boolean
         if true, make a top clip, if false, make a standard peg
 */
-	rotate([0,0,15])
+	translate([0,0, board_thickness*1.5/2])
+  rotate([0,0,15])
 	cylinder(r=hole_size/2, h=board_thickness*1.5+epsilon, center=true, $fn=12);
 
 	if (clip) {
@@ -146,7 +160,7 @@ module pinboard_clips() {
 */
 	rotate([0,90,0])
 	for(i=[0:round(total_width/hole_spacing)]) {
-		for(j=[0:max(strength_factor, round(holder_height/hole_spacing))]) {
+		for(j=[0:max(strength_factor, round(holder.z/hole_spacing))]) {
 
 			translate([
 				j*hole_spacing, 
@@ -157,13 +171,13 @@ module pinboard_clips() {
 	}
 }
 
-module pinboard(clips) {
+module pinboard() {
 /*
     create the plate that the pins and clips attach to
     pins and clips and plate holding it all together
 */
 	rotate([0,90,0])
-	translate([-epsilon, 0, -wall_thickness - board_thickness/2 + epsilon])
+	translate([-epsilon, 0, -wall_thickness + epsilon])
 	hull() {
 		translate([-clip_height/2 + hole_size/2, 
 			-hole_spacing*(round(total_width/hole_spacing)/2),0])
@@ -173,15 +187,53 @@ module pinboard(clips) {
 			hole_spacing*(round(total_width/hole_spacing)/2),0])
 			cylinder(r=hole_size/2,  h=wall_thickness);
 
-		translate([max(strength_factor, round(holder_height/hole_spacing))*hole_spacing,
+		translate([max(strength_factor, round(holder.z/hole_spacing))*hole_spacing,
 			-hole_spacing*(round(total_width/hole_spacing)/2),0])
 			cylinder(r=hole_size/2, h=wall_thickness);
 
-		translate([max(strength_factor, round(holder_height/hole_spacing))*hole_spacing,
+		translate([max(strength_factor, round(holder.z/hole_spacing))*hole_spacing,
 			hole_spacing*(round(total_width/hole_spacing)/2),0])
 			cylinder(r=hole_size/2,  h=wall_thickness);
 
 	}
+}
+
+module mag_mount() {
+  /*
+    make a single vertical mount containing magnets
+  
+    magnets are top and bottom and spaced based on mag_spacing
+  */
+  w = magnet.x+2*wall_thickness;
+  d = magnet.y+wall_thickness+mag_wall_thickness;
+  h = holder.z;
+  
+  translate([w,0,0])
+  rotate([0,0,180])
+  difference () {
+    cube([w,d,h]);
+    
+    translate([wall_thickness, mag_wall_thickness,0])
+    mag_holes();
+  }
+}
+
+module mag_holes() {
+  /*
+    make the holes for the magnets
+  */
+
+  
+  // cavities
+  mag_z_count = max(1, ceil((holder.z-2*mag_edge_space-magnet.z)/mag_space));
+  mag_step = (holder.z-2*mag_edge_space-magnet.z)/mag_z_count;
+  for (j=[0:mag_z_count]) {
+    if (DEBUG) {
+      echo(mag=j, z=(mag_edge_space+j*mag_step));
+    }
+    translate([0,0,mag_edge_space+j*mag_step])
+    cube(magnet);
+  } // loop j over z
 }
 
 module holder_element(id, size, front = false) {
@@ -225,7 +277,7 @@ module holder_element(id, size, front = false) {
               holder_roundness + epsilon, 
               holder_roundness*taper_ratio + epsilon);
 
-            translate([0-(holder_depth + 2*wall_thickness), 0,0])
+            translate([0-(holder.x + 2*wall_thickness), 0,0])
             scale([1.0, holder_cutout_side, 1.0])
               round_rect_ex(
               size.y, 
@@ -302,11 +354,11 @@ module holder(size, front=false) {
 module holders_element(id) {
   
   // loop through rows and columns, adding bits as we go
-  size = [holder_width, holder_depth, holder_height];
+  size = [holder.y, holder.x, holder.z];
   for(i=[0: row_count - 1]) {
     for (j=[0:col_count - 1]) {
       front = ((j==col_count)-1);
-      trans = [i*(max(col_space, wall_thickness) + holder_depth), j*(max(row_space, wall_thickness) + holder_width), 0];
+      trans = [i*(max(col_space, wall_thickness) + holder.x), j*(max(row_space, wall_thickness) + holder.y), 0];
       if (DEBUG) {
         echo(holder=[i,j]);
         echo(trans=trans);
@@ -328,11 +380,11 @@ module olders(negative, size) {
   
 	for(x=[1:row_count]) {
 		for(y=[1:col_count]) {
-      x_pos = -total_depth + y*(holder_depth+wall_thickness) + wall_thickness + (y-1)*col_space;
-      y_pos = -total_width/2 + (holder_width+wall_thickness)/2 + (x-1)*(holder_width+wall_thickness) + wall_thickness/2 + (x-1)*row_space;
+      x_pos = -total_depth + y*(holder.x+wall_thickness) + wall_thickness + (y-1)*col_space;
+      y_pos = -total_width/2 + (holder.y+wall_thickness)/2 + (x-1)*(holder.y+wall_thickness) + wall_thickness/2 + (x-1)*row_space;
       
-      xp2 = -wall_thickness*abs(sin(holder_angle))-0*abs((holder_depth/2)*sin(holder_angle))-holder_offset-(holder_depth + 2*wall_thickness)/2 - board_thickness/2;
-      zp2 = -(holder_height/2)*sin(holder_angle) - holder_height/2 + clip_height/2;
+      xp2 = -wall_thickness*abs(sin(holder_angle))-0*abs((holder.x/2)*sin(holder_angle))-holder_offset-(holder.x + 2*wall_thickness)/2 - board_thickness/2;
+      zp2 = -(holder.z/2)*sin(holder_angle) - holder.z/2 + clip_height/2;
       
       // translate to the last 
 			translate([x_pos, y_pos, 0]) {
@@ -363,7 +415,7 @@ module pegstr() {
 						cube([
 							total_depth + 2*wall_thickness, 
 							total_width + wall_thickness, 
-							2*holder_height
+							2*holder.z
 						], center=true);
 	
 						!holder(0);
@@ -391,13 +443,38 @@ module pegstr() {
 
 	}
 }
-
-
+module magstr() {
+  // create the holder
+  difference () {
+    hull() holders_element("outer");
+    holders_element("inner");
+  }
+  
+  mag_mount_count = max(1, ceil((total_width-holder_roundness*2-magnet.x-2*wall_thickness)/mag_space));
+  mount_step = (total_width-holder_roundness*2-magnet.x-2*wall_thickness)/mag_mount_count;
+  if (DEBUG) {
+    echo(mount_count=mag_mount_count, step=mount_step);
+  }
+  
+  if (mag_mount_count == 1) {
+    if (DEBUG) {
+      echo(single_mag_mnt=true, pos=total_width/2-magnet.x/2-wall_thickness);
+    }
+    translate([-magnet.x/2-wall_thickness,0,0])
+    mag_mount();
+  }
+  
+  for (i=[0:mag_mount_count]) {
+    if (DEBUG) {
+      echo(mag_mnt=i,pos=holder_roundness+i*mount_step);
+    }
+    translate([holder_roundness+i*mount_step, 0,0])
+    mag_mount();
+  } // for i over mag_mounts
+}
 //rotate([180,0,0]) pegstr();
 
-//holder([holder_width,holder_depth,holder_height]);
+//holder([holder.y,holder.x,holder.z]);
+//mag_mount();
 
-difference () {
-  hull() holders_element("outer");
-  holders_element("inner");
-}
+magstr();
