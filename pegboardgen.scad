@@ -13,13 +13,6 @@
 
 epsilon = 0.1;
 
-// size of each orifice
-// patboard cards
-holder = [70, 40, 40];
-
-// markers
-
-
 // magnet params
 magnet = [6+epsilon, 1+epsilon, 6+epsilon];
 mag_edge_space = 2;
@@ -31,60 +24,15 @@ wall_thickness = 1.85;
 // how thick are the outer walls between magnet cavities and the metal surface
 mag_wall_thickness = .4;
 
-// how many times to repeat the holder on each axis
-row_count = 3;
-col_count = 1;
-
-// how much space to put between the orifices
-row_space = 0;
-col_space = 0;
-
-// orifice corner radius (roundness). Needs to be less than min(x,y)/2.
-corner_radius = 2.5;
-
-// Use values less than 1.0 to make the bottom of the holder narrow
-taper_ratio = 1;
-
-/* [Advanced] */
-
-// offset from the peg board, typically 0 unless you have an object that needs clearance
-holder_offset = 5;
-
-// what ratio of the holders bottom is reinforced to the plate [0.0-1.0]
-strength_factor = .66;
-
-// for bins: what ratio of wall thickness to use for closing the bottom
-closed_bottom = 1;
-
-// what percentage to cut in the front (example to slip in a cable or make the tool snap from the side)
-holder_cutout_side = 0.3;
-
-// set an angle for the holder to prevent object from sliding or to view it better from the top
-holder_angle = 0;
-
-
 /* [Hidden] */
 
-// set to true to print out stuff
-DEBUG = false;
-
-// what is the $fn parameter
-holder_sides = max(50, min(20, holder.y*2));
+// set to 1 for a shallow debug, 2 for a deep debug
+DEBUG = 0;
 
 // dimensions the same outside US?
 hole_spacing = 25.4;
 hole_size = 6.0035;
 board_thickness = 5;
-
-total_width = wall_thickness + row_count*(max(wall_thickness,row_space)+holder.x);
-total_depth = wall_thickness + col_count*(max(wall_thickness,col_space)+holder.y);
-total_height = round(holder.z/hole_spacing)*hole_spacing;
-holder_roundness = min(corner_radius, holder.y/2, holder.x/2); 
-
-if (DEBUG) {
-  echo(tot_w=total_width, tot_d=total_depth);
-  echo(roundness=holder_roundness);
-}
 
 // what is the $fn parameter for holders
 fn = 32;
@@ -92,13 +40,22 @@ fn = 32;
 clip_height = 2*hole_size + 2;
 $fn = fn;
 
+/* [Helper Functions] */
+
+// give the total dimensions for a given holder array
+function total_width(size, count, spacers=[0,0]) = size.x*count.x + (count.x - 1)*(max(spacers.x, wall_thickness)) + 2*wall_thickness;
+function total_depth(size, count, spacers=[0,0], row_offset=0) = size.y*count.y + (count.y - 1)*(max(spacers.y, wall_thickness)) + wall_thickness + min(wall_thickness, row_offset);
+function total_height(size, sf) = size.z + val(sf, 0, 1);
+
+// rounds p up to the min or down to the max
+function val(p, minimum, maximum) = max(minimum, min(maximum, p));
+
 module round_rect_ex(x1, y1, x2, y2, z, r1, r2, center=false) {
-	$fn=holder_sides;
+	$fn=50;
 	brim = z/10;
-  if (DEBUG) {
+  if (DEBUG >= 2) {
     echo(x1=x1, y1=y1, x2=x2, y2=y2, z=z, r1=r1, r2=r2);
   }
-	//rotate([0,0,(holder_sides==6)?30:((holder_sides==4)?45:0)])
   trans = center ? [0,0,0] : [x1/2, y1/2, z/2];
 
   translate(trans)
@@ -236,93 +193,98 @@ module mag_holes() {
   } // loop j over z
 }
 
-module holder_element(id, size, front = false) {
+module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
   /*
     create one of the elements of the holder:
-    param id: type of element
+    param id: str, type of element
       outer: outer shell
       inner: inner shell
       hole: through hole
-      f_inner: inner shell with partial front
-      f_hole: through hole with partial front
+    param r: corner radius of the holder
+    param taper: float 0-1, ratio of bottom dimensions to top dimensions
+    param cb: float 0-1, thickness of bottom as a % of wall_thickness.
+                      0 = open bottom, 1 = solid bottom
+    param co: float 0-1, cutout front as a % of the front dimension
+    param a: float -45 to 45, angle of the holder with + to the front
+    param front: bool, is the holder at the front. Only applicable if co > 0
   */
   if (id == "outer") {
     round_rect_ex(
-					(size.y + 2*wall_thickness), 
 					(size.x + 2*wall_thickness), 
-					(size.y + 2*wall_thickness)*taper_ratio, 
-					(size.x + 2*wall_thickness)*taper_ratio, 
+					(size.y + 2*wall_thickness), 
+					(size.x + 2*wall_thickness)*taper, 
+					(size.y + 2*wall_thickness)*taper, 
 					size.z, 
-					holder_roundness + epsilon, 
-					holder_roundness*taper_ratio + epsilon);
+					r + epsilon, 
+					r*taper + epsilon);
   } else if (id == "inner") {
-    translate([wall_thickness,wall_thickness,closed_bottom*wall_thickness]) {
+    translate([wall_thickness,wall_thickness,cb*wall_thickness]) {
       round_rect_ex(
-            size.y, 
             size.x, 
-            size.y*taper_ratio, 
-            size.x*taper_ratio, 
+            size.y, 
+            size.x*taper, 
+            size.y*taper, 
             size.z, 
-            holder_roundness + epsilon, 
-            holder_roundness*taper_ratio + epsilon);
-      if (front && holder_cutout_side > 0) {
+            r + epsilon, 
+            r*taper + epsilon);
+      if (front && co > 0) {
         hull() {
-            scale([1.0, holder_cutout_side, 1.0])
+            scale([1.0, co, 1.0])
               round_rect_ex(
-              size.y, 
               size.x, 
-              size.y*taper_ratio, 
-              size.x*taper_ratio, 
+              size.y, 
+              size.x*taper, 
+              size.y*taper, 
               size.z+2*epsilon,
-              holder_roundness + epsilon, 
-              holder_roundness*taper_ratio + epsilon);
+              r + epsilon, 
+              r*taper + epsilon);
 
             translate([0-(holder.x + 2*wall_thickness), 0,0])
-            scale([1.0, holder_cutout_side, 1.0])
+            scale([1.0, co, 1.0])
               round_rect_ex(
-              size.y, 
               size.x, 
-              size.y*taper_ratio, 
-              size.x*taper_ratio, 
+              size.y, 
+              size.x*taper, 
+              size.y*taper, 
               size.z+2*epsilon,
-              holder_roundness + epsilon, 
-              holder_roundness*taper_ratio + epsilon);
+              r+ epsilon, 
+              r*taper+ epsilon);
             } //hull
           } // if (front)
       } // translate
   } else if (id == "hole") {
     translate([wall_thickness, wall_thickness, 0]) {
       round_rect_ex(
-            size.y*taper_ratio, 
-            size.x*taper_ratio, 
-            size.y*taper_ratio, 
-            size.x*taper_ratio, 
+            size.x*taper, 
+            size.y*taper, 
+            size.x*taper, 
+            size.y*taper, 
             size.z*2, 
-            holder_roundness + epsilon, 
-            holder_roundness + epsilon);
+            r+ epsilon, 
+            r+ epsilon);
       
-      if (front && holder_cutout_side > 0) {
+      if (front && co > 0) {
         hull () {
-          scale([1.0, holder_cutout_side, 1.0])
+          scale([1.0, co, 1.0])
           round_rect_ex(
-            size.y*taper_ratio, 
-            size.x*taper_ratio, 
-            size.y*taper_ratio, 
-            size.x*taper_ratio, 
+            size.x*taper, 
+            size.y*taper, 
+            size.x*taper, 
+            size.y*taper, 
             size.z*2,
-            holder_roundness*taper_ratio + epsilon, 
-            holder_roundness*taper_ratio + epsilon);
+            r*taper+ epsilon, 
+            r*taper+ epsilon);
           
             translate([0-(size.y + 2*wall_thickness), 0,0])
-            scale([1.0, holder_cutout_side, 1.0])
+            scale([1.0, co, 1.0])
             round_rect_ex(
-              size.y*taper_ratio, 
-              size.x*taper_ratio, 
-              size.y*taper_ratio, 
-              size.x*taper_ratio, 
+              size.x*taper, 
+              size.y*taper, 
+              size.x*taper, 
+              size.y*taper, 
               size.z*2,
-              holder_roundness*taper_ratio + epsilon, 
-              holder_roundness*taper_ratio + epsilon);
+              r*taper + epsilon, 
+              r*taper + epsilon);
         } // hull
       } // if (front)
     } // translate
@@ -334,6 +296,8 @@ module holder(size, front=false) {
   /* create a holder
   param size: [width, depth, height]
   param front: if true, the front will be cutout based on holder_cutout_side value
+  
+  this shouldn't actually be used anymore...
   */
   
   cb = (closed_bottom*wall_thickness > epsilon);
@@ -351,14 +315,34 @@ module holder(size, front=false) {
   }
 }
 
-module holders_element(id) {
-  
+module holder_element_array(id, size, radius, count, taper=1, row_offset=0, spacers = [0,0], sf=0, cb=1, co=0, a=0) {
+  /*
+    create one element type for all holders in an array:
+    param id: str, type of element
+      outer: outer shell
+      inner: inner shell
+      hole: through hole
+    param size: [width, depth, height] of each oriface
+    param radius: corner radius of the holder
+    param rows, cols: int, how many rows (total depth) and cols (total width)
+    param taper: float 0-1, ratio of bottom dimensions to top dimensions
+    param row_offset: float, how far the rear row should be from the mounts
+    param spacers: [col space, row space] in mm
+    param sf: float 0-1, strength factor adds a support under the whole structure
+    param cb: float 0-1, thickness of bottom as a % of wall_thickness.
+                      0 = open bottom, 1 = solid bottom
+    param co: float 0-1, cutout front as a % of the front dimension
+    param a: float -45 to 45, angle of the holder with + to the front
+  */
+
+  // do some math
+  r = min(size.x/2, size.y/2, radius);
+                                          
   // loop through rows and columns, adding bits as we go
-  size = [holder.y, holder.x, holder.z];
-  for(i=[0: row_count - 1]) {
-    for (j=[0:col_count - 1]) {
-      front = ((j==col_count)-1);
-      trans = [i*(max(col_space, wall_thickness) + holder.x), j*(max(row_space, wall_thickness) + holder.y), 0];
+  for(i=[0: count.x - 1]) {
+    for (j=[0:count.y - 1]) {
+      front = ((j==count.x)-1);
+      trans = [i*(max(spacers.x, wall_thickness) + size.x), j*(max(spacers.y, wall_thickness) + size.y), 0];
       if (DEBUG) {
         echo(holder=[i,j]);
         echo(trans=trans);
@@ -366,32 +350,38 @@ module holders_element(id) {
       
       // move holder based on either spacer or wall thickness
       translate(trans)
-      holder_element(id, size, front);
+      holder_element(id, size, r, taper, cb, co, a, front);
     } // col loop
   } // row loop
 }
 
-
-module olders(negative, size) {
-/*
+module holder_array(size, radius, count, taper=1, row_offset=0, spacers = [0,0], sf=0, cb=1, co=0, a=0) {
+  /*
     create an array of holders
-    
+    param id: str, type of element
+      outer: outer shell
+      inner: inner shell
+      hole: through hole
+    param size: [width, depth, height] of each oriface
+    param radius: corner radius of the holder
+    param count: [cols, rows], how many rows (total depth) and cols (total width)
+    param taper: float 0-1, ratio of bottom dimensions to top dimensions
+    param row_offset: float, how far the rear row should be from the mounts
+    param spacers: [col space, row space] in mm
+    param sf: float 0-1, strength factor adds a support under the whole structure
+    param cb: float 0-1, thickness of bottom as a % of wall_thickness.
+                      0 = open bottom, 1 = solid bottom
+    param co: float 0-1, cutout front as a % of the front dimension
+    param a: float -45 to 45, angle of the holder with + to the front
 */
-  
-	for(x=[1:row_count]) {
-		for(y=[1:col_count]) {
-      x_pos = -total_depth + y*(holder.x+wall_thickness) + wall_thickness + (y-1)*col_space;
-      y_pos = -total_width/2 + (holder.y+wall_thickness)/2 + (x-1)*(holder.y+wall_thickness) + wall_thickness/2 + (x-1)*row_space;
-      
-      xp2 = -wall_thickness*abs(sin(holder_angle))-0*abs((holder.x/2)*sin(holder_angle))-holder_offset-(holder.x + 2*wall_thickness)/2 - board_thickness/2;
-      zp2 = -(holder.z/2)*sin(holder_angle) - holder.z/2 + clip_height/2;
-      
-      // translate to the last 
-			translate([x_pos, y_pos, 0]) {
-        rotate([0, holder_angle, 0]) translate([xp2,0,zp2]) cube(1);
-		} // positioning
-	} // for y
-	} // for X
+  difference() {
+    hull () holder_element_array("outer", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
+    holder_element_array("inner", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
+    
+    if (cb*wall_thickness < epsilon) {
+      holder_element_array("hole", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
+    }
+  }
 }
 
 module pegstr() {
@@ -443,12 +433,28 @@ module pegstr() {
 
 	}
 }
-module magstr() {
-  // create the holder
-  difference () {
-    hull() holders_element("outer");
-    holders_element("inner");
+module patboard_mags() {
+  /*
+  creates a magnetic card and marker holder for patboard stuff
+  
+  _m is for markers, _c is for cards
+  */
+  h = 75;
+  r_m = 11;
+  r_c = 2.5;
+  count_m = [4, 1];
+  count_c = [1, 3];
+  size_m = [11,11,h];
+  size_c = [40, 70, h];
+  
+  // create the card holder with embedded magnets
+  translate([total_width(size_m, 1]), 0, 0)
+  difference() {
+    holder_array(size_c, r_c, 
+    
   }
+  
+  // create the holder
   
   mag_mount_count = max(1, ceil((total_width-holder_roundness*2-magnet.x-2*wall_thickness)/mag_space));
   mount_step = (total_width-holder_roundness*2-magnet.x-2*wall_thickness)/mag_mount_count;
@@ -472,9 +478,17 @@ module magstr() {
     mag_mount();
   } // for i over mag_mounts
 }
+
+
+
+
+t1 = [0,(total_depth([40,70,75], 1) - total_depth([11,11,75], 4))/2,0];
+t2 = [total_width([11,11,75], 1),0,0];
+translate(t1) holder_array([11,11,75],  80, 4, 1);
+translate(t2) holder_array([40, 70, 75], 2.5, 1, 3);
+
 //rotate([180,0,0]) pegstr();
 
 //holder([holder.y,holder.x,holder.z]);
 //mag_mount();
 
-magstr();
