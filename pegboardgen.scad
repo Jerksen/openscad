@@ -14,20 +14,20 @@
 epsilon = 0.1;
 
 // magnet params
-size_mag = [6+epsilon, 1+epsilon, 6+epsilon];
+size_mag = [25.4/4+epsilon, 25.4/16+epsilon, 25.4/4+epsilon];
 mag_edge_space = 2;
-mag_space = 100;
+mag_space = 40;
 
 // how thick are the walls. Hint: 6*extrusion width produces the best results.
 wall_thickness = 1.85;
 
 // how thick are the outer walls between magnet cavities and the metal surface
-mag_wall_thickness = .4;
+mag_wall_thickness = .9;
 
 /* [Hidden] */
 
 // set to 1 for a shallow debug, 2 for a deep debug
-DEBUG = 0;
+DEBUG = 1;
 
 // dimensions the same outside US?
 hole_spacing = 25.4;
@@ -44,8 +44,8 @@ $fn = fn;
 
 // give the total dimensions for a given holder array
 function total_width(size, count, spacers=[0,0]) = size.x*count.x + (count.x - 1)*(max(spacers.x, wall_thickness)) + 2*wall_thickness;
-function total_depth(size, count, spacers=[0,0], row_offset=0) = size.y*count.y + (count.y - 1)*(max(spacers.y, wall_thickness)) + wall_thickness + min(wall_thickness, row_offset);
-function total_height(size, sf) = size.z + val(sf, 0, 1);
+function total_depth(size, count, spacers=[0,0], row_offset=0) = size.y*count.y + (count.y - 1)*(max(spacers.y, wall_thickness)) + wall_thickness + max(wall_thickness, row_offset);
+function total_height(size, sf=0) = size.z + val(sf, 0, 1);
 function total_size(size, count, spacers=[0,0], row_offset=0, sf=0) = 
   [total_width(size, count, spacers),
    total_depth(size, count, spacers, row_offset),
@@ -164,7 +164,7 @@ module mag_holes(size, r) {
   */
 
   //figure out count/spacing for holes  
-  mag_count = [max(1, ceil((size.x-r*2-size_mag.x-2*wall_thickness)/mag_space)),
+  mag_count = [max(1, ceil((size.x-size_mag.x-2*max(r, wall_thickness))/mag_space)),
                 0,
                 max(1, ceil((size.z-2*mag_edge_space-size_mag.z)/mag_space))];
   
@@ -172,6 +172,10 @@ module mag_holes(size, r) {
               0,
               (size.z-mag_edge_space*2-size_mag.z)/mag_count.z];
 
+  if (DEBUG) {
+    echo(mag_count=mag_count, mag_step=mag_step);
+  }
+  
   for (i=[0:mag_count.x]) {
     for (j=[0:mag_count.z]) {
       if (DEBUG) {
@@ -242,30 +246,20 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
             } //hull
           } // if (front)
       } // translate
-  } else if (id == "hole") {
-    translate([wall_thickness, wall_thickness, 0]) {
-      round_rect_ex(
-            size.x*taper, 
-            size.y*taper, 
-            size.x*taper, 
-            size.y*taper, 
-            size.z*2, 
-            r+ epsilon, 
-            r+ epsilon);
       
-      if (front && co > 0) {
-        hull () {
-          scale([1.0, co, 1.0])
-          round_rect_ex(
-            size.x*taper, 
-            size.y*taper, 
-            size.x*taper, 
-            size.y*taper, 
-            size.z*2,
-            r*taper+ epsilon, 
-            r*taper+ epsilon);
-          
-            translate([0-(size.y + 2*wall_thickness), 0,0])
+      if (cb*wall_thickness < epsilon) {
+      translate([wall_thickness, wall_thickness, -size.z/2]) {
+        round_rect_ex(
+              size.x*taper, 
+              size.y*taper, 
+              size.x*taper, 
+              size.y*taper, 
+              size.z*2, 
+              r+ epsilon, 
+              r+ epsilon);
+        
+        if (front && co > 0) {
+          hull () {
             scale([1.0, co, 1.0])
             round_rect_ex(
               size.x*taper, 
@@ -273,10 +267,22 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
               size.x*taper, 
               size.y*taper, 
               size.z*2,
-              r*taper + epsilon, 
-              r*taper + epsilon);
-        } // hull
-      } // if (front)
+              r*taper+ epsilon, 
+              r*taper+ epsilon);
+            
+              translate([0-(size.y + 2*wall_thickness), 0,0])
+              scale([1.0, co, 1.0])
+              round_rect_ex(
+                size.x*taper, 
+                size.y*taper, 
+                size.x*taper, 
+                size.y*taper, 
+                size.z*2,
+                r*taper + epsilon, 
+                r*taper + epsilon);
+          } // hull
+        } // if (front)
+      } // if !closed bottom 
     } // translate
   } // switch
 }
@@ -332,7 +338,7 @@ module holder_element_array(id, size, radius, count, taper=1, row_offset=0, spac
   for(i=[0: count.x - 1]) {
     for (j=[0:count.y - 1]) {
       front = ((i==count.x)-1);
-      trans = [i*(max(spacers.x, wall_thickness) + size.x), row_offset + j*(max(spacers.y, wall_thickness) + size.y), 0];
+      trans = [i*(max(spacers.x, wall_thickness) + size.x), max(row_offset-wall_thickness,0) + j*(max(spacers.y, wall_thickness) + size.y), 0];
       if (DEBUG) {
         echo(holder=[i,j]);
         echo(trans=trans);
@@ -435,23 +441,44 @@ module patboard_mags() {
   
   _m is for markers, _c is for cards
   */
-  h = 75;
-  r_m = 11;
-  r_c = 2.5;
+  h = 40;
   count_m = [1, 4];
   count_c = [3, 1];
   offset_c = wall_thickness+size_mag.y+mag_wall_thickness;
   size_m = [11,11,h];
-  size_c = [40, 70, h];
+  tsize_m = total_size(size_m, count_m);
+  size_c = [68, tsize_m.y-wall_thickness-offset_c, h];
+  tsize_c = total_size(size_c, count_c, row_offset=offset_c);
+  r_m = size_m.x/2;
+  r_c = 2.5;
+  
+  echo(tsize_c=tsize_c, tsize_m=tsize_m);
   
   // create the card holder with embedded magnets
-  translate([total_width(size_m, count_m), 0, 0])
+  translate([tsize_m.x, 0, 0])
   difference() {
-    holder_array(size_c, r_c, count_c,row_offset=offset_c);
+    hull() {
+      cube(tsize_c - [r_c,0,0]);
+      holder_element_array("outer", size_c, r_c, count_c,row_offset=offset_c);
+    }
+    holder_element_array("inner", size_c, r_c, count_c,row_offset=offset_c);
     
     translate([0,mag_wall_thickness,0])
-    mag_holes(total_size(size_c, count_c, row_offset=offset_c), r_c);
+    mag_holes(tsize_c, r_c);
   }
+  
+  // create the marker holder with a flat edge on the joint to the card
+  // holder
+  difference() {
+    hull() {
+      translate ([r_m, 0,0])
+      cube(tsize_m - [r_m, 0, 0]);
+      holder_element_array("outer",size_m, r_m, count_m);
+      
+    }
+    holder_element_array("inner",size_m, r_m, count_m, cb=0);
+  }
+  
 }
 
 //rotate([180,0,0]) pegstr();
