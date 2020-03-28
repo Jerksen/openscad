@@ -187,6 +187,49 @@ module mag_holes(size, r) {
   } // loop i over x
 }
 
+
+module mag_holder_shell(size, negative=false) {
+  /*
+    create the shell of a special peice that is made to contain magnets
+    and interface to a holder
+  
+  param negative: bool, return the normal shell or the negative hole for the holder
+  
+  */
+  scl = !negative ? [1,1,1] : [(size.x+2*epsilon)/size.x,(size.y+2*epsilon)/size.y,1];
+  sclbase = !negative ? [1,1,1] : [0,0,0];
+  base_size = [size_mag.x+2*wall_thickness,
+              size_mag.y+wall_thickness+mag_wall_thickness,
+              size.z];
+  
+  echo(base_size=base_size);
+  
+  //flange dimensions
+  fsize1 = [wall_thickness*2, epsilon, base_size.z-wall_thickness];
+  fsize2 = [wall_thickness*6, fsize1.y, fsize1.z];
+  
+  scale(scl) {
+    // make the base that contains the magnets
+    scale(sclbase)
+    cube(base_size);
+    
+    translate([(base_size.x-fsize1.x)/2,wall_thickness*2,0]) {
+      
+      // connect the base to the flange
+      cube([fsize1.x, fsize1.x, fsize1.z]);
+    
+      // create the flange
+      translate([0,fsize1.x,0])
+      hull () {
+        cube (fsize1);
+        translate ([-(fsize2.x-fsize1.x)/2, (fsize2.x-fsize1.x)/2, 0])
+        cube (fsize2);
+      }
+    }
+  }
+  
+}
+
 module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
   /*
     create one of the elements of the holder:
@@ -484,6 +527,8 @@ module patboard_mags() {
 //rotate([180,0,0]) pegstr();
 
 //holder([holder.y,holder.x,holder.z]);
-patboard_mags();
+//patboard_mags();
+
+mag_holder_shell([20,20,100]);
 
 //holder_element_array("outer", [10,40,10], 2.5, [1,4]);
