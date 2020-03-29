@@ -16,7 +16,7 @@ epsilon = 0.1;
 // magnet params
 size_mag = [25.4/4+epsilon, 25.4/16+epsilon, 25.4/4+epsilon];
 mag_edge_space = 2;
-mag_space = 40;
+mag_space = [40,0,20];
 
 // how thick are the walls. Hint: 6*extrusion width produces the best results.
 wall_thickness = 1.85;
@@ -27,7 +27,7 @@ mag_wall_thickness = .9;
 /* [Hidden] */
 
 // set to 1 for a shallow debug, 2 for a deep debug
-DEBUG = 1;
+DEBUG = 0;
 
 // dimensions the same outside US?
 hole_spacing = 25.4;
@@ -158,37 +158,31 @@ module pinboard() {
 
 	}
 }
-module mag_holes(size, r) {
+module mag_holes(size) {
   /*
     make the holes for the magnets
   */
 
   //figure out count/spacing for holes  
-  mag_count = [max(1, ceil((size.x-size_mag.x-2*max(r, wall_thickness))/mag_space)),
-                0,
-                max(1, ceil((size.z-2*mag_edge_space-size_mag.z)/mag_space))];
+  mag_count = max(1, ceil((size.z-2*mag_edge_space-size_mag.z)/mag_space.z));
   
-  mag_step = [(size.x-r*2-size_mag.x-2*wall_thickness)/mag_count.x,
-              0,
-              (size.z-mag_edge_space*2-size_mag.z)/mag_count.z];
+  mag_step = (size.z-mag_edge_space*2-size_mag.z)/mag_count;
 
   if (DEBUG) {
     echo(mag_count=mag_count, mag_step=mag_step);
   }
   
-  for (i=[0:mag_count.x]) {
-    for (j=[0:mag_count.z]) {
-      if (DEBUG) {
-        echo(mag=[i,j], x=r+i*mag_step.x, z=(mag_edge_space+j*mag_step.z));
-      }
-      translate([r+i*mag_step.x,0,mag_edge_space+j*mag_step.z])
-      cube(size_mag);
-    } // loop j over z
-  } // loop i over x
+  for (j=[0:mag_count]) {
+    if (DEBUG) {
+      echo(mag=j, z=(mag_edge_space+j*mag_step));
+    }
+    translate([0,0,mag_edge_space+j*mag_step])
+    cube(size_mag);
+  } // loop j over z
 }
 
 
-module mag_holder_shell(size, negative=false) {
+module mag_holder_element(size, negative=false) {
   /*
     create the shell of a special peice that is made to contain magnets
     and interface to a holder
@@ -202,7 +196,9 @@ module mag_holder_shell(size, negative=false) {
               size_mag.y+wall_thickness+mag_wall_thickness,
               size.z];
   
-  echo(base_size=base_size);
+  if (DEBUG) {
+    echo(base_size=base_size);
+  }
   
   //flange dimensions
   fsize1 = [wall_thickness*2, epsilon, base_size.z-wall_thickness];
@@ -211,7 +207,12 @@ module mag_holder_shell(size, negative=false) {
   scale(scl) {
     // make the base that contains the magnets
     scale(sclbase)
-    cube(base_size);
+    difference () {
+      cube(base_size);
+      #translate ([(base_size.x-size_mag.x)/2,mag_wall_thickness,0])
+      mag_holes(size);
+      
+    }
     
     translate([(base_size.x-fsize1.x)/2,wall_thickness*2,0]) {
       
@@ -228,6 +229,30 @@ module mag_holder_shell(size, negative=false) {
     }
   }
   
+}
+
+
+module mag_holder_array(size, r, negative=false) {
+  /*
+  an array of mag holder elements based on the size and spacing of the magnets
+  */
+  mag_holder_count = max(0,ceil((size.x-size_mag.x-2*max(r, wall_thickness))/mag_space.x));
+  
+  mag_holder_step = (size.x-r*2-size_mag.x-2*wall_thickness)/max(1,mag_holder_count);
+  
+  if (DEBUG) {
+    echo(mag_hldr_count=mag_holder_count, mag_hldr_step=mag_holder_step);
+  }
+  
+  for (i=[0:mag_holder_count]) {
+    
+    if (DEBUG) {
+      echo(mag=i, x=(r+i*mag_holder_step));
+    }
+    
+    translate([r+i*mag_holder_step,0,0])
+    mag_holder_element(size, negative);
+  } // loop i for each mag holder
 }
 
 module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
@@ -487,7 +512,7 @@ module patboard_mags() {
   h = 40;
   count_m = [1, 4];
   count_c = [3, 1];
-  offset_c = wall_thickness+size_mag.y+mag_wall_thickness;
+  offset_c = wall_thickness*5;
   size_m = [11,11,h];
   tsize_m = total_size(size_m, count_m);
   size_c = [68, tsize_m.y-wall_thickness-offset_c, h];
@@ -506,8 +531,8 @@ module patboard_mags() {
     }
     holder_element_array("inner", size_c, r_c, count_c,row_offset=offset_c);
     
-    translate([0,mag_wall_thickness,0])
-    mag_holes(tsize_c, r_c);
+    translate ([0,-wall_thickness*2-epsilon,-epsilon])
+    mag_holder_array(tsize_c, r_c, true);
   }
   
   // create the marker holder with a flat edge on the joint to the card
@@ -527,8 +552,8 @@ module patboard_mags() {
 //rotate([180,0,0]) pegstr();
 
 //holder([holder.y,holder.x,holder.z]);
-//patboard_mags();
+patboard_mags();
 
-mag_holder_shell([20,20,100]);
+//mag_holder_array([100,10,100], 5);
 
-//holder_element_array("outer", [10,40,10], 2.5, [1,4]);
+
