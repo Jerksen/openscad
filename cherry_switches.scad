@@ -19,19 +19,32 @@ hole_size = [14,14,1.5];
 space = 5;
 
 // how to stager columns based on fingers, starting with index
-finger_stagger=[0,18,13,-18];
+finger_stagger=[0,0,18,13,-18,-18];
 
 /**********************
 renders
 **********************/
-translate([10,0,0])
-hole_array([4,4], finger_stagger);
-translate([-10,0,0])
-mirror() hole_array([4,4], finger_stagger);
+
+translate([0,0,0]) top_plate();
 
 /**********************
 modules
 **********************/
+module top_plate() {
+  count = [6,3];
+  translate([5,5,0])
+  difference () {
+    scale([1,1,0.5])
+    hull() {
+      translate([-5,-5,0]) hole_array(count, finger_stagger);
+      translate([5,-5,0]) hole_array(count, finger_stagger);
+      translate([5,5,0]) hole_array(count, finger_stagger);
+      translate([-5,5,0]) hole_array(count, finger_stagger); 
+    }
+    hole_array([6,3], finger_stagger);
+  }
+}
+
 module hole() {
   translate([0,0,-hole_size.z])
   scale([1,1,2])  
