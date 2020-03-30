@@ -552,8 +552,8 @@ module patboard_mags() {
 //rotate([180,0,0]) pegstr();
 
 //holder([holder.y,holder.x,holder.z]);
-patboard_mags();
+//patboard_mags();
 
-//mag_holder_array([100,10,100], 5);
+mag_holder_element([10,10,40]);
 
 
