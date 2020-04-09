@@ -1,15 +1,17 @@
-// Holder Generator
-// Based on an original Design by Marius Gheorghescu, November 2014
-// Heavily modified to make it more maintainable and able to support screw and magnet mounts
+/*
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>
+
+    This software is based on an original Design by Marius Gheorghescu, November 2014 and was
+    heavily modified to make it more maintainable and able to support screw and magnet mounts
 
 
-// TODO - update to make an option for screw mounts instead of pegs
-
-// TODO - offset seems to break it when holder_angle != 0
-
-// TODO - strength factor of > 0.66 leaves gaps when there is a closed bottom (in a 55Rx30 test at least)
-
-// preview[view:north, tilt:bottom diagonal]
+	TODO - update to make an option for screw mounts instead of pegs
+*/
 
 epsilon = 0.1;
 
