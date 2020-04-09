@@ -31,9 +31,18 @@ $fn=30;
 /**********************
 renders
 **********************/
-
 difference() {
   top_plate();
+  
+  
+  screw_holes();
+}
+
+/**********************
+modules
+**********************/
+module screw_holes() {
+  base_move = [(hole_size.x+space), hole_size.y+space, 2.25*hole_size.z/2];
   
   translate([(hole_size.x+space)*1+space/2,(hole_size.y+space)*-.1+space/2,(2.25+hole_size.z/2)])
   BoltFlushWithSurface(allenBolt, M3, length=20);
@@ -51,9 +60,6 @@ difference() {
   BoltFlushWithSurface(allenBolt, M3, length=20);
 }
 
-/**********************
-modules
-**********************/
 module top_plate() {
   count = [6,3];
   translate([5,5,0])
