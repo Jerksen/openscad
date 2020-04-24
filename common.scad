@@ -15,11 +15,27 @@ includes
 /**********************
 globals
 **********************/
-e = (e == undef) ? 0.1 : e;
-DEBUG = (DEBUG == undef) ? 0 : DEBUG;
+e = .1;
+DEBUG = 2;
 
 
+/**********************
+renders (should be empty)
+**********************/
+//ring_arc(10,2,3,135,center=true,round_end=true);
+echo(central_align_vector([1,1,1],[4,4,4]));
 
+/**********************
+functions
+**********************/
+// create a scale vector so that a part of <size> has some gaps around it
+function neg_scaling_vector(size, gap=e) = [for(i=[0:2]) (size[i] + 2*gap) / size[i]];
+
+// provide a scaling vector to make an object of size_o match the final size (size_f)
+function linear_scaling_vector(size_o, size_f) = [for(i=[0:2]) (size_f[i])/size_o[i]];
+  
+// provide a vector to align the centers of o1 to o2, assuming they are located at the origin in the positive octant
+function central_align_vector(o1, o2) = (o2-o1)/2;
 /**********************
 part modules
 **********************/
@@ -33,6 +49,9 @@ module ring_arc(d_in, t, hgt, a=0, center=false, round_end=false) {
   param round_end: bool, should the cut ends of the ring be rounded?
   */
   d_out=d_in+2*t;
+  
+  a_90s=floor(a/90);
+  
   tran = !center ? [d_out/2,d_out/2,0] : [0,0,0];
   translate(tran) {
     difference() {
@@ -40,12 +59,20 @@ module ring_arc(d_in, t, hgt, a=0, center=false, round_end=false) {
       
       translate([0,0,-e/2]) {
         cylinder(h=hgt+e, d=d_in);
-        
-        if (a>0) {
-          hull () 
-          for (i=[0,a]) {
-            rotate([0,0,i]) cube([e,5*d_out,hgt+e]);
+      
+        // cut out 90 degree chunks first
+        if (a_90s>0) {
+          for (i=[1:a_90s]) {
+            rotate([0,0,90*i])
+            cube(d_out+e);
           }
+        }
+        
+        //cutout the subchunks by putting cubes at 3 points
+        if (a>0) {
+          rotate([0,0,90*(a_90s)])
+          linear_extrude(hgt+e)
+          polygon([[0,0],[0,d_out],[-tan(a-90*a_90s)*d_out,d_out]]);
         }
       }
     }
