@@ -13,10 +13,18 @@
 	TODO - update to make an option for screw mounts instead of pegs
 */
 
-epsilon = 0.1;
+/**********************
+includes
+**********************/
+include <common.scad>
+
+/**********************
+globals
+**********************/
+e = 0.1;
 
 // magnet params
-size_mag = [25.4/4+epsilon, 25.4/16+epsilon, 25.4/4+epsilon];
+size_mag = [25.4/4+e, 25.4/16+e, 25.4/4+e];
 mag_edge_space = 2;
 mag_space = [40,0,20];
 
@@ -42,8 +50,19 @@ fn = 32;
 clip_height = 2*hole_size + 2;
 $fn = fn;
 
-/* [Helper Functions] */
+/**********************
+renders
+**********************/
+//rotate([180,0,0]) pegstr();
 
+//holder([holder.y,holder.x,holder.z]);
+//patboard_mags();
+
+mag_holder_element([10,10,40]);
+
+/**********************
+functions
+**********************/
 // give the total dimensions for a given holder array
 function total_width(size, count, spacers=[0,0]) = size.x*count.x + (count.x - 1)*(max(spacers.x, wall_thickness)) + 2*wall_thickness;
 function total_depth(size, count, spacers=[0,0], row_offset=0) = size.y*count.y + (count.y - 1)*(max(spacers.y, wall_thickness)) + wall_thickness + max(wall_thickness, row_offset);
@@ -56,51 +75,24 @@ function total_size(size, count, spacers=[0,0], row_offset=0, sf=0) =
 // rounds p up to the min or down to the max
 function val(p, minimum, maximum) = max(minimum, min(maximum, p));
 
-module round_rect_ex(x1, y1, x2, y2, z, r1, r2, center=false) {
-	$fn=50;
-	brim = z/10;
-  if (DEBUG >= 2) {
-    echo(x1=x1, y1=y1, x2=x2, y2=y2, z=z, r1=r1, r2=r2);
-  }
-  trans = center ? [0,0,0] : [x1/2, y1/2, z/2];
 
-  translate(trans)
-	hull() {
-        translate([-x1/2 + r1, y1/2 - r1, z/2-brim/2])
-            cylinder(r=r1, h=brim,center=true);
-        translate([x1/2 - r1, y1/2 - r1, z/2-brim/2])
-            cylinder(r=r1, h=brim,center=true);
-        translate([-x1/2 + r1, -y1/2 + r1, z/2-brim/2])
-            cylinder(r=r1, h=brim,center=true);
-        translate([x1/2 - r1, -y1/2 + r1, z/2-brim/2])
-            cylinder(r=r1, h=brim,center=true);
-
-        translate([-x2/2 + r2, y2/2 - r2, -z/2+brim/2])
-            cylinder(r=r2, h=brim,center=true);
-        translate([x2/2 - r2, y2/2 - r2, -z/2+brim/2])
-            cylinder(r=r2, h=brim,center=true);
-        translate([-x2/2 + r2, -y2/2 + r2, -z/2+brim/2])
-            cylinder(r=r2, h=brim,center=true);
-        translate([x2/2 - r2, -y2/2 + r2, -z/2+brim/2])
-            cylinder(r=r2, h=brim,center=true);
-
-    }
-}
-
+/**********************
+modules
+**********************/
 module pin(clip) {
 /* param clip: boolean
         if true, make a top clip, if false, make a standard peg
 */
 	translate([0,0, board_thickness*1.5/2])
   rotate([0,0,15])
-	cylinder(r=hole_size/2, h=board_thickness*1.5+epsilon, center=true, $fn=12);
+	cylinder(r=hole_size/2, h=board_thickness*1.5+e, center=true, $fn=12);
 
 	if (clip) {
 		//
 		rotate([0,0,90])
 		intersection() {
-			translate([0, 0, hole_size-epsilon])
-				cube([hole_size+2*epsilon, clip_height, 2*hole_size], center=true);
+			translate([0, 0, hole_size-e])
+				cube([hole_size+2*e, clip_height, 2*hole_size], center=true);
 
 			// [-hole_size/2 - 1.95,0, board_thickness/2]
 			translate([0, hole_size/2 + 2, board_thickness/2]) 
@@ -112,7 +104,7 @@ module pin(clip) {
 			translate([0, hole_size/2 + 2 - 1.6, board_thickness/2]) 
 				rotate([45,0,0])
 				translate([0, -0, hole_size*0.6])
-					cube([hole_size+2*epsilon, 3*hole_size, hole_size], center=true);
+					cube([hole_size+2*e, 3*hole_size, hole_size], center=true);
 		}
 	}
 }
@@ -140,7 +132,7 @@ module pinboard() {
     pins and clips and plate holding it all together
 */
 	rotate([0,90,0])
-	translate([-epsilon, 0, -wall_thickness + epsilon])
+	translate([-e, 0, -wall_thickness + e])
 	hull() {
 		translate([-clip_height/2 + hole_size/2, 
 			-hole_spacing*(round(total_width/hole_spacing)/2),0])
@@ -192,7 +184,7 @@ module mag_holder_element(size, negative=false) {
   param negative: bool, return the normal shell or the negative hole for the holder
   
   */
-  scl = !negative ? [1,1,1] : [(size.x+2*epsilon)/size.x,(size.y+2*epsilon)/size.y,1];
+  scl = !negative ? [1,1,1] : [(size.x+2*e)/size.x,(size.y+2*e)/size.y,1];
   sclbase = !negative ? [1,1,1] : [0,0,0];
   base_size = [size_mag.x+2*wall_thickness,
               size_mag.y+wall_thickness+mag_wall_thickness,
@@ -203,7 +195,7 @@ module mag_holder_element(size, negative=false) {
   }
   
   //flange dimensions
-  fsize1 = [wall_thickness*2, epsilon, base_size.z-wall_thickness];
+  fsize1 = [wall_thickness*2, e, base_size.z-wall_thickness];
   fsize2 = [wall_thickness*6, fsize1.y, fsize1.z];
   
   scale(scl) {
@@ -279,8 +271,8 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
 					(size.x + 2*wall_thickness)*taper, 
 					(size.y + 2*wall_thickness)*taper, 
 					size.z, 
-					r + epsilon, 
-					r*taper + epsilon);
+					r + e, 
+					r*taper + e);
   } else if (id == "inner") {
     translate([wall_thickness,wall_thickness,cb*wall_thickness]) {
       round_rect_ex(
@@ -289,8 +281,8 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
             size.x*taper, 
             size.y*taper, 
             size.z, 
-            r + epsilon, 
-            r*taper + epsilon);
+            r + e, 
+            r*taper + e);
       if (front && co > 0) {
         hull() {
             scale([1.0, co, 1.0])
@@ -299,9 +291,9 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
               size.y, 
               size.x*taper, 
               size.y*taper, 
-              size.z+2*epsilon,
-              r + epsilon, 
-              r*taper + epsilon);
+              size.z+2*e,
+              r + e, 
+              r*taper + e);
 
             translate([0-(holder.x + 2*wall_thickness), 0,0])
             scale([1.0, co, 1.0])
@@ -310,14 +302,14 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
               size.y, 
               size.x*taper, 
               size.y*taper, 
-              size.z+2*epsilon,
-              r+ epsilon, 
-              r*taper+ epsilon);
+              size.z+2*e,
+              r+ e, 
+              r*taper+ e);
             } //hull
           } // if (front)
       } // translate
       
-      if (cb*wall_thickness < epsilon) {
+      if (cb*wall_thickness < e) {
       translate([wall_thickness, wall_thickness, -size.z/2]) {
         round_rect_ex(
               size.x*taper, 
@@ -325,8 +317,8 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
               size.x*taper, 
               size.y*taper, 
               size.z*2, 
-              r+ epsilon, 
-              r+ epsilon);
+              r+ e, 
+              r+ e);
         
         if (front && co > 0) {
           hull () {
@@ -337,8 +329,8 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
               size.x*taper, 
               size.y*taper, 
               size.z*2,
-              r*taper+ epsilon, 
-              r*taper+ epsilon);
+              r*taper+ e, 
+              r*taper+ e);
             
               translate([0-(size.y + 2*wall_thickness), 0,0])
               scale([1.0, co, 1.0])
@@ -348,8 +340,8 @@ module holder_element(id, size, r, taper=1, cb=1, co=0, a=0, front = false) {
                 size.x*taper, 
                 size.y*taper, 
                 size.z*2,
-                r*taper + epsilon, 
-                r*taper + epsilon);
+                r*taper + e, 
+                r*taper + e);
           } // hull
         } // if (front)
       } // if !closed bottom 
@@ -366,7 +358,7 @@ module holder(size, front=false) {
   this shouldn't actually be used anymore...
   */
   
-  cb = (closed_bottom*wall_thickness > epsilon);
+  cb = (closed_bottom*wall_thickness > e);
   rotate([0, holder_angle, 0])
   difference() {
     //main outer shell is the base
@@ -450,7 +442,7 @@ module holder_array(size, radius, count, taper=1, row_offset=0, spacers = [0,0],
     hull () holder_element_array("outer", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
     holder_element_array("inner", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
     
-    if (cb*wall_thickness < epsilon) {
+    if (cb*wall_thickness < e) {
       holder_element_array("hole", size, radius, count, taper, row_offset, spacers, sf, cb, co, a);
     }
   }
@@ -485,7 +477,7 @@ module pegstr() {
 					}	
 				}
 
-				if (closed_bottom*wall_thickness < epsilon) {
+				if (closed_bottom*wall_thickness < e) {
 						holder(2);
 				}
 
@@ -533,7 +525,7 @@ module patboard_mags() {
     }
     holder_element_array("inner", size_c, r_c, count_c,row_offset=offset_c);
     
-    translate ([0,-wall_thickness*2-epsilon,-epsilon])
+    translate ([0,-wall_thickness*2-e,-e])
     mag_holder_array(tsize_c, r_c, true);
   }
   
@@ -550,12 +542,3 @@ module patboard_mags() {
   }
   
 }
-
-//rotate([180,0,0]) pegstr();
-
-//holder([holder.y,holder.x,holder.z]);
-//patboard_mags();
-
-mag_holder_element([10,10,40]);
-
-
