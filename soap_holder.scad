@@ -20,7 +20,10 @@ DEBUG=0;
 diam=20;
 t=4;
 hgt=65;
+r_out=5+t;
+r_in=5;
 soap_size = [75,210,20];
+razor_size = [(soap_size.x-3*t)/2, 20, soap_size.z+e];
 $fn= !DEBUG ? 360: 25;
 
 // how long is the angled stub?
@@ -34,32 +37,46 @@ stub_h = sqrt(pow(stub_l,2)-pow(oset,2));
 /**********************
 renders
 **********************/
-rotate([0,0,90]) {
+dish(true);
+//modifier("bottom", true);
+
+
+module test () {
   difference () {
-  //dish();
-  group () {
-  modifier(0);
-  modifier(1);
-  }
+    dish(true);
+    modifier("bottom", true);
   }
 }
+  
 
 /**********************
 part modules
 **********************/
-module dish() {
-  rotate([0,-90,0])
-  ikea_interface();
+module dish(razor_hole=false) {
+  difference() {
+    group () {
+      rotate([0,-90,0])
+      ikea_interface();
 
-  translate([-t,-soap_size.y/2,0])
-    r_fcube(soap_size, 20);
+      translate([-t,-soap_size.y/2,0])
+        r_fcube(soap_size, r_out);
+    }
+    
+    // cutout the top part
+    modifier("top", razor_hole);
+    
+    // if we want a razor hole, cut out the bottom part
+    if (razor_hole) {
+      for (i=[0,soap_size.x-razor_size.x-t*2]) {
+        translate([i,soap_size.y/2-razor_size.y-t,-e/2])
+        r_fcube(razor_size, r_in);
+      }
+    }
+  }
 }
+
 module ikea_interface() {
-  
-  
-  echo(stub_a);
-  
-  translate ([hgt,0,2*e-oset]) {
+  translate ([hgt,0,2*e-oset]){
     
     // main ring
     rotate ([0,0,45])
@@ -88,7 +105,9 @@ module ikea_interface() {
   }
 }
 
-module modifier(id) {
-  translate([0,t-soap_size.y/2,id*(soap_size.z/2)-e/2])
-  r_fcube(soap_size-[2*t,2*t,soap_size.z/2-e],20-t);
+module modifier(type, razor_hole=false) {
+  id = (type == "bottom") ? 0 : 1;
+  size = razor_hole ? soap_size - [0, razor_size.y+t,0]: soap_size;
+  translate([0,t-soap_size.y/2,id*(size.z/2)-e/2])
+  r_fcube(size-[2*t,2*t,size.z/2-e],r_in);
 }
