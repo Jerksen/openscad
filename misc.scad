@@ -23,11 +23,42 @@ dout = 7*25.4;
 /**********************
 renders
 **********************/
-pool_filter_handle();
+router_plate();
 
 /**********************
 part modules
 **********************/
+module router_plate() {
+  $fn=720;
+  /*plate for dwayne's router*/
+  h = 6; // thickness is good
+  d_plate = 6*25.4;
+  d_sin = 6;
+  d_sout = 10;
+  d_jig = 30.15; // 30.1 was tight, 30.15 should be good
+  screw_tr = [d_plate/2-d_sin/2-4.75,0,0];
+  
+  difference() {
+    // main plate
+    cylinder(h=h, d=d_plate, center=true);
+    
+    // center hole
+    cylinder(h=h+e, d=d_jig, center=true);
+    
+    // screw holes
+    for (i=[0,120,240]) {
+      rotate([0,0,i])
+      translate(screw_tr) {
+        cylinder(h=h+e, d=d_sin, center=true);
+        
+        translate([0,0,h-4])
+        cylinder(h=h+e, d=d_sout, center=true);
+      }
+    }
+  }
+}
+
+
 module pool_filter_handle() {
   /*
   handle for a pool filter, with the pins and everything
