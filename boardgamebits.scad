@@ -17,52 +17,62 @@ globals
 **********************/
 e = 0.1;
 DEBUG=0;
-$fn=360;
+$fn=60;
 t_wall = 0.45*3;
 
 /**********************
 renders
 **********************/
-forum_trajanum_buildings();
+forum_trajanum_buildings("bottom");
+forum_trajanum_buildings("lid");
+
 
 /**********************
 part modules
 **********************/
 module forum_trajanum_buildings(type="bottom") {
   /* bins for forum trajanum buildings*/
-  size_sm = [25, 25, 30];
-  size_lg = [25, 49, 25];
-  size_shell = [size_sm.x*4+t_wall*5, size_sm.y+size_lg.y+t_wall*3, max(size_sm.z,size_lg.z)+t_wall];
-  size_lid = size_shell + [t_wall*2+.15, t_wall*2+.15, t_wall+.15];
+  sm_side = 25 + .25;
+  lg_side = 49.8 + .25;
+  size_sm = [sm_side, sm_side, 29];
+  size_lg = [sm_side, lg_side, 25.5];
+  size_shell = [sm_side*4+t_wall*5, sm_side+lg_side+t_wall*3, max(size_sm.z,size_lg.z)+t_wall];
+  e_lid = .175;
+  size_lid = size_shell + [t_wall*2+e_lid, t_wall*2+e_lid, e_lid-t_wall];
   
   if (type=="bottom") {
+    translate([t_wall,t_wall,0])
     difference () {
       // main shell
       r_fcube(size_shell,t_wall);
       
+      // part compartments
       for (i=[0:3]) {
         for (j=[0:1]) {
           // bins
           translate([t_wall + i*(size_sm.x+t_wall), t_wall + j*(size_sm.y+t_wall), size_shell.z])
-          translate([0,0,-(j==0 ? size_sm.z : size_lg.z)+e/2]) {
+          translate([0,0,-(j==0 ? size_sm.z : size_lg.z)]) {
             // bins
             cube((j==0 ? size_sm : size_lg));
             
             //front cutouts
-            translate([size_sm.x/6,size_lg.y/2*(j==0?-1:1),0])
+            translate([sm_side/6,lg_side/2*(j==0?-1:1),0])
             scale ([2/3,1,1])
             cube((j==0 ? size_sm: size_lg));
           }
         }
       }
     }
+    
+    r_fcube([size_lid.x, size_lid.y,t_wall], t_wall);
   }
-  else {
+  else if (type == "lid") {
+    translate([0,-size_lid.y-10,0])
     difference() {
-      f_rcube(size_lid);
+      r_fcube(size_lid, t_wall*2);
       
-      translate([t_wall+.15/2, t_wall+.15/2, t_wall+.15])
-      f_rcube(size_shell);
+      translate([t_wall+e_lid/2, t_wall+e_lid/2, t_wall+e_lid])
+      r_fcube(size_shell, t_wall);
     }
   }
 }
