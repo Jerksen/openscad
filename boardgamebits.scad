@@ -37,7 +37,7 @@ module forum_trajanum_buildings(type="bottom") {
   size_sm = [sm_side, sm_side, 29];
   size_lg = [sm_side, lg_side, 25.5];
   size_shell = [sm_side*4+t_wall*5, sm_side+lg_side+t_wall*3, max(size_sm.z,size_lg.z)+t_wall];
-  e_lid = .175;
+  e_lid = .25; // printed at .175 and it was a bit tight
   size_lid = size_shell + [t_wall*2+e_lid, t_wall*2+e_lid, e_lid-t_wall];
   
   if (type=="bottom") {

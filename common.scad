@@ -125,4 +125,11 @@ module r_fcube (size, rad, center=false) {
   }
 }
 
+module guide_plane(d, l=500) {
+  /* creates an xy plane lxl elevated d up from the origin*/
+  color("gray",0.25)
+  translate([0,0,d+e/2])
+  cube([l,l,e],center=true);
+}
+
 function minr(r,size) = min(r, size.x/2, size.y/2);
