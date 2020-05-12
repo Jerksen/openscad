@@ -23,7 +23,7 @@ dout = 7*25.4;
 /**********************
 renders
 **********************/
-router_plate();
+gap_test();
 
 /**********************
 part modules
@@ -33,17 +33,22 @@ module router_plate() {
   /*plate for dwayne's router*/
   h = 6; // thickness is good
   d_plate = 6*25.4;
-  d_sin = 6;
-  d_sout = 10;
+  d_sin = 6.5;
+  d_sout = 10.5;
   d_jig = 30.15; // 30.1 was tight, 30.15 should be good
+  d_jig_out = 34.85 + .15;
   screw_tr = [d_plate/2-d_sin/2-4.75,0,0];
   
   difference() {
     // main plate
     cylinder(h=h, d=d_plate, center=true);
     
-    // center hole
+    // inner center hole
     cylinder(h=h+e, d=d_jig, center=true);
+    
+    // outer center hole
+    translate([0,0,h/2])
+    cylinder(h=h, d=d_jig_out, center=true);
     
     // screw holes
     for (i=[0,120,240]) {
@@ -58,6 +63,26 @@ module router_plate() {
   }
 }
 
+module gap_test() {
+  /* some bits to test the gap*/
+  d_base = 5;
+  
+  cylinder(h=10, d=5);
+  
+  for (i=[2:4]) {
+    translate([(i-1)*15,0,0])
+    difference () {
+      cylinder(h=5, d=10);
+      translate([0,0,-e/2])
+      cylinder(h=5+e,d=5+i*0.05);
+      for (j=[1:i]) {
+        rotate([0,0,j*30])
+        translate([d_base,0,-e/2])
+        cube([1,1,11], center=true);
+      }
+    }
+  }
+}
 
 module pool_filter_handle() {
   /*
