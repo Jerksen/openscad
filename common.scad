@@ -128,7 +128,7 @@ module r_fcube (size, rad, center=false) {
 module guide_plane(d, l=500) {
   /* creates an xy plane lxl elevated d up from the origin*/
   color("gray",0.25)
-  translate([0,0,d+e/2])
+  translate([0,0,d+(d<0?-e/2:e/2)])
   cube([l,l,e],center=true);
 }
 

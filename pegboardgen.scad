@@ -37,7 +37,7 @@ mag_wall_thickness = .9;
 /* [Hidden] */
 
 // set to 1 for a shallow debug, 2 for a deep debug
-DEBUG = 1;
+DEBUG = 0;
 
 // dimensions the same outside US?
 hole_spacing = 25.4;
@@ -45,7 +45,7 @@ hole_size = 6.0035;
 board_thickness = 5;
 
 // what is the $fn parameter for holders
-fn = 32;
+fn = 50;
 
 clip_height = 2*hole_size + 2;
 $fn = fn;
@@ -53,9 +53,9 @@ $fn = fn;
 /**********************
 renders
 **********************/
-s = [10,20,50];
-c = [3,1];
-pegboardgen(s,[true,false,true],count=c);
+s = [141,3.5,25];
+c = [1,4];
+pegboardgen(s,[false,false,true],count=c);
 //rotate([0,90,0]) guide_plane(56.8035);
 //patboard_mags();
 
@@ -116,7 +116,7 @@ module pin(clip) {
         if true, make a top clip, if false, make a standard peg
 */
   rotate([0,-90,90])
-	translate([clip?hole_size+1:hole_size/2,-hole_size/2, board_thickness*1.5/2]) {
+	translate([hole_size+1,-hole_size/2, board_thickness*1.5/2]) {
     rotate([0,0,15])
     cylinder(r=hole_size/2, h=board_thickness*1.5+e, center=true, $fn=12);
 
@@ -125,14 +125,14 @@ module pin(clip) {
       rotate([0,0,90])
       intersection() {
         translate([0, 0, hole_size-e])
-          cube([hole_size+2*e, clip_height, 2*hole_size], center=true);
+        cube([hole_size+2*e, clip_height, 2*hole_size], center=true);
 
         // [-hole_size/2 - 1.95,0, board_thickness/2]
         translate([0, hole_size/2 + 2, board_thickness/2]) 
           rotate([0, 90, 0])
           rotate_extrude(convexity = 5, $fn=20)
           translate([5, 0, 0])
-           circle(r = (hole_size*0.95)/2); 
+           circle(r = (hole_size*0.95)/2);
         
         translate([0, hole_size/2 + 2 - 1.6, board_thickness/2]) 
           rotate([45,0,0])
@@ -151,13 +151,13 @@ module pinboard_clips(size) {
 */
   steps = [floor(size.x/hole_spacing),
           0,
-          floor((size.z-hole_size-1)/hole_spacing)];
+          floor(size.z/hole_spacing)];
   
   xoffset = (size.x-hole_spacing*steps.x-hole_size)/4;
   
 	for(i=[0:steps.x]) {
 		for(j=[0:steps.z]) {
-			translate([i*hole_spacing+xoffset,0,j*hole_spacing])
+			translate([i*hole_spacing+xoffset,wall_thickness*.75,j*hole_spacing])
 					pin(j==0);
 		}
 	}
@@ -484,9 +484,9 @@ module pegboardgen(size, align=[false,false,false], radius=0, count=[1,1], taper
   // figure out the final size of the holder based on alignment params
   tsize_holder = total_size(size, count, spacers, row_offset, sf);
   
-  tsize = [align.x?ceil(tsize_holder.x/hole_spacing)*hole_spacing+hole_size:tsize_holder.x,
+  tsize = [max(hole_spacing+hole_size,align.x?ceil(tsize_holder.x/hole_spacing)*hole_spacing+hole_size:tsize_holder.x),
             tsize_holder.y,
-            align.z?ceil((tsize_holder.z)/hole_spacing)*hole_spacing+hole_size+1:tsize_holder.z];
+            max(align.z?ceil((tsize_holder.z)/hole_spacing)*hole_spacing+hole_size*1.5+1:tsize_holder.z,hole_size*2)];
   
   xoffset = (tsize.x-tsize_holder.x)/2;
   echo(tsize1=tsize_holder,tsize=tsize);
@@ -496,9 +496,7 @@ module pegboardgen(size, align=[false,false,false], radius=0, count=[1,1], taper
       translate([tsize_holder.x+xoffset,0,tsize_holder.z])
       rotate([0,180,0])
       holder_element_array("outer",size,radius,count,taper,row_offset,spacers,sf,cb,co,a);
-      if (align.x || align.z) {
-        pinboard(tsize);
-      }
+      pinboard(tsize);
     }
     
     translate([tsize_holder.x+xoffset,0,tsize_holder.z])
