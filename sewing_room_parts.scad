@@ -23,15 +23,15 @@ redsnapper_diam = 8;
 msize = [25.4/4, 25.4/4, 25.4/16] + [e,e,e];
 hq_bolt_in=9;
 hq_bolt_out=18;
-hq_frame_gap=5;
+hq_frame_gap=6.1;
 
 $fn=30;
 
 /**********************
 renders
 **********************/
-//red_snapper_mount_top();
-red_snapper_mount_bottom();
+red_snapper_mount_top();
+//red_snapper_mount_bottom();
 //hq_bar_guide(false);
 
 /**********************
@@ -66,7 +66,8 @@ module red_snapper_mount_top() {
   h = 20;
   
   isize = [hq_frame_gap,h,h];
-  csize = [3.5+t+isize.x,h,t];
+  osize = [t,h,h];
+  csize = [3.5+t+isize.x+osize.x,h,t];
   
   rotate ([0,180,0]) {
     // main hoop
@@ -75,8 +76,11 @@ module red_snapper_mount_top() {
     // interface to the hq
     translate([-csize.x+t,d/2-csize.y/2,h-t])
     cube(csize);
+      
+    translate([-csize.x+t,d/2-osize.y/2,h-t])
+    cube(osize);
     
-    translate([-csize.x+t,d/2-isize.y/2,0])
+    translate([-csize.x+osize.x+t,d/2-isize.y/2,0])
     cube(isize);
   }
 }
